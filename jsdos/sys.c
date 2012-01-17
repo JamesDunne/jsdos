@@ -56,12 +56,12 @@ int sys_run()
 
     char intfmt[9] = "\0\0\0\0\0\0\0\0\0";
     size_t pos;
-    pos = hw_txt_write_string("foo(  1): ", 0, 0, 0x7);
-    hw_txt_write_string(txt_format_hex_int32(intfmt, foo(1)), 0, 0 + pos, 0xf);
-    pos = hw_txt_write_string("foo(100): ", 1, 0, 0x7);
-    hw_txt_write_string(txt_format_hex_int32(intfmt, foo(100)), 1, 0 + pos, 0xf);
-    pos = hw_txt_write_string("foo(255): ", 2, 0, 0x7);
-    hw_txt_write_string(txt_format_hex_int32(intfmt, foo(255)), 2, 0 + pos, 0xf);
+    pos = hw_txt_write_string("foo(  1): ", 2, 0, 0x7);
+    hw_txt_write_string(txt_format_hex_int32(intfmt, foo(1)), 2, 0 + pos, 0xf);
+    pos = hw_txt_write_string("foo(100): ", 3, 0, 0x7);
+    hw_txt_write_string(txt_format_hex_int32(intfmt, foo(100)), 3, 0 + pos, 0xf);
+    pos = hw_txt_write_string("foo(255): ", 4, 0, 0x7);
+    hw_txt_write_string(txt_format_hex_int32(intfmt, foo(255)), 4, 0 + pos, 0xf);
 
     // if you are interested, you can dump the machine code
     // this functionality is provided through the `gcc' and `objdump'
@@ -73,6 +73,9 @@ int sys_run()
     uint lastrow = hw_txt_get_rows() - 1;
     hw_txt_clear_row(lastrow);
     hw_txt_write_string("done", lastrow, 0, 0xf);
+
+    // Test the vertical scroll function:
+    hw_txt_vscroll_up(2);
 
     return 0;
 }

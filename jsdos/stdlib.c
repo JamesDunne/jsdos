@@ -62,9 +62,7 @@ void __assert_fail(const char *assertion, const char *file, unsigned int line, c
     pos += hw_txt_write_string("assertion failure in ", lastrow - 1, pos, 0xf);
     pos += hw_txt_write_string(file, lastrow - 1, pos, 0xf);
     pos += hw_txt_write_string(" (", lastrow - 1, pos, 0xf);
-    // NOTE(jsd): code blows up horribly if we embed this expression as the first arg of hw_txt_write_string here... might be due to lack of a call-stack? :P
-    txt_format_hex_int32(tmp, line);
-    pos += hw_txt_write_string(tmp, lastrow - 1, pos, 0xf);
+    pos += hw_txt_write_string(txt_format_hex_int32(tmp, line), lastrow - 1, pos, 0xf);
     pos += hw_txt_write_string("): ", lastrow - 1, pos, 0xf);
     if (function == NULL) function = "<no function>";
     pos += hw_txt_write_string(function, lastrow - 1, pos, 0xf);

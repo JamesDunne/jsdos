@@ -50,6 +50,25 @@ void hw_txt_clear_screen()
 uint hw_txt_get_rows() { return hw_txt_rows; }
 uint hw_txt_get_cols() { return hw_txt_cols; }
 
+// Vertically scroll the screen up by `rows` rows.
+void hw_txt_vscroll_up(uint rows)
+{
+    if (rows > hw_txt_rows) rows = hw_txt_rows;
+
+    int offs = (rows * hw_txt_cols * 2);
+
+    // Shift all the screen rows up:
+    for (size_t i = offs; i < (hw_txt_rows * hw_txt_cols * 2); i += 2)
+    {
+        hw_txt_colorbuf[i+0 - offs] = hw_txt_colorbuf[i+0];
+        hw_txt_colorbuf[i+1 - offs] = hw_txt_colorbuf[i+1];
+    }
+
+    // Clear the new rows at the bottom:
+    for (size_t row = hw_txt_rows - rows; row < hw_txt_rows; ++row)
+        hw_txt_clear_row(row);
+}
+
 // Kernel functions:
 /////////////////////////////
 

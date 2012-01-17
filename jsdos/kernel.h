@@ -21,6 +21,7 @@ void hw_txt_clear_row(uint row);
 void hw_txt_clear_screen();
 uint hw_txt_get_rows();
 uint hw_txt_get_cols();
+void hw_txt_vscroll_up(uint rows);
 
 // Formatting functions:
 ////////////////////////
