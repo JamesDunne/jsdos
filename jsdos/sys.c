@@ -1,10 +1,4 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <unistd.h>
 #include "kernel.h"
-
-// includes the header file
 #include "myjit/jitlib.h"
 
 // pointer to a function accepting one argument of type long and returning long value
@@ -13,8 +7,17 @@ typedef int32_t (* plfl)(int32_t);
 // Called first from main to init the system.
 int sys_init()
 {
+    // Clear the text screen:
+    hw_txt_clear_screen();
+
     // Return 0 to indicate successful initialization.
     return 0;
+}
+
+void sys_done()
+{
+    // NOTE(jsd): for testing purposes
+    assert(0);
 }
 
 // Called to halt the system indefinitely.
@@ -51,18 +54,14 @@ int sys_run()
     // compiles the above defined code
     jit_generate_code(p);
 
-    // checks, if it works
-    //printf("Check #1: %li\n", foo(1));
-    //printf("Check #2: %li\n", foo(100));
-    //printf("Check #3: %li\n", foo(255));
-
     char intfmt[9] = "\0\0\0\0\0\0\0\0\0";
-    hw_txt_write_string("foo(  1): ", 10, 0, 0x7);
-    hw_txt_write_string(txt_format_hex_int32(intfmt, foo(1)), 10, 10, 0xf);
-    hw_txt_write_string("foo(100): ", 11, 0, 0x7);
-    hw_txt_write_string(txt_format_hex_int32(intfmt, foo(100)), 11, 10, 0xf);
-    hw_txt_write_string("foo(255): ", 12, 0, 0x7);
-    hw_txt_write_string(txt_format_hex_int32(intfmt, foo(255)), 12, 10, 0xf);
+    size_t pos;
+    pos = hw_txt_write_string("foo(  1): ", 0, 0, 0x7);
+    hw_txt_write_string(txt_format_hex_int32(intfmt, foo(1)), 0, 0 + pos, 0xf);
+    pos = hw_txt_write_string("foo(100): ", 1, 0, 0x7);
+    hw_txt_write_string(txt_format_hex_int32(intfmt, foo(100)), 1, 0 + pos, 0xf);
+    pos = hw_txt_write_string("foo(255): ", 2, 0, 0x7);
+    hw_txt_write_string(txt_format_hex_int32(intfmt, foo(255)), 2, 0 + pos, 0xf);
 
     // if you are interested, you can dump the machine code
     // this functionality is provided through the `gcc' and `objdump'
@@ -71,8 +70,9 @@ int sys_run()
     // cleanup
     jit_free(p);
 
-    hw_txt_clear_row(24);
-    hw_txt_write_string("done", 24, 0, 0xf);
+    uint lastrow = hw_txt_get_rows() - 1;
+    hw_txt_clear_row(lastrow);
+    hw_txt_write_string("done", lastrow, 0, 0xf);
 
     return 0;
 }

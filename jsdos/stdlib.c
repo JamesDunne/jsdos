@@ -1,7 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
 #include <unistd.h>
+
 #include "kernel.h"
 
 // stdlib "implementations":
@@ -11,7 +14,7 @@
 
 void *malloc(size_t size)
 {
-    static void *next = MEM_DATA;
+    static void *next = (void *)MEM_DATA;
     void *ptr = next;
     next = (void*)((char *)next + size);
     return ptr;
@@ -24,7 +27,7 @@ void *realloc(void *ptr, size_t size)
 
 void free(void *ptr)
 {
-    // Nothing to do since
+    // Nothing to do
 }
 
 void *memcpy(void *dst, const void *src, size_t n)
@@ -47,8 +50,29 @@ void *memcpy(void *dst, const void *src, size_t n)
 // Called by assert(n) macro, expected to halt execution:
 void __assert_fail(const char *assertion, const char *file, unsigned int line, const char *function)
 {
-    hw_txt_write_string(assertion, 24, 0, 0xf);
+    uint lastrow = hw_txt_get_rows() - 1;
 
+    hw_txt_clear_row(lastrow - 1);
+    hw_txt_clear_row(lastrow);
+
+    char tmp[9] = "\0\0\0\0\0\0\0\0\0";
+    size_t pos = 0;
+
+    if (file == NULL) file = "<no file>";
+    pos += hw_txt_write_string("assertion failure in ", lastrow - 1, pos, 0xf);
+    pos += hw_txt_write_string(file, lastrow - 1, pos, 0xf);
+    pos += hw_txt_write_string(" (", lastrow - 1, pos, 0xf);
+    // NOTE(jsd): code blows up horribly if we embed this expression as the first arg of hw_txt_write_string here... might be due to lack of a call-stack? :P
+    txt_format_hex_int32(tmp, line);
+    pos += hw_txt_write_string(tmp, lastrow - 1, pos, 0xf);
+    pos += hw_txt_write_string("): ", lastrow - 1, pos, 0xf);
+    if (function == NULL) function = "<no function>";
+    pos += hw_txt_write_string(function, lastrow - 1, pos, 0xf);
+
+    if (assertion == NULL) assertion = "<no assertion>";
+    hw_txt_write_string(assertion, lastrow, 0, 0xf);
+
+    // Halt the system:
     sys_sleep();
 }
 

@@ -1,8 +1,54 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <unistd.h>
 #include "kernel.h"
+
+// Hardware screen functions:
+/////////////////////////////
+
+// Memory mapped I/O for the 80x25 color text-mode screen:
+volatile char *hw_txt_colorbuf = (char *) 0xb8000;
+uint hw_txt_cols = 80;
+uint hw_txt_rows = 25;
+
+// Writes a NUL-terminated string in a certain color to a row,col position on the text-mode screen
+// and returns the number of characters written (even if they're wrapped to the next row).
+size_t hw_txt_write_string(const char *msg, uint row, uint col, uint8_t color)
+{
+    size_t i = (row * hw_txt_cols * 2) + (col * 2);
+    size_t l = 0;
+
+    while (*msg != 0)
+    {
+        hw_txt_colorbuf[i+0] = *msg;
+        msg++;
+        hw_txt_colorbuf[i+1] = color;
+        i += 2;
+        l++;
+    }
+
+    return l;
+}
+
+// Clears an entire screen row.
+void hw_txt_clear_row(uint row)
+{
+    for (size_t i = (row * hw_txt_cols * 2); i < (row * hw_txt_cols * 2) + (hw_txt_cols * 2); i += 2)
+    {
+        hw_txt_colorbuf[i+0] = 0;
+        hw_txt_colorbuf[i+1] = 7;
+    }
+}
+
+// Clears the entire screen.
+void hw_txt_clear_screen()
+{
+    for (size_t i = 0; i < (hw_txt_rows * hw_txt_cols * 2); i += 2)
+    {
+        hw_txt_colorbuf[i+0] = 0;
+        hw_txt_colorbuf[i+1] = 7;
+    }
+}
+
+uint hw_txt_get_rows() { return hw_txt_rows; }
+uint hw_txt_get_cols() { return hw_txt_cols; }
 
 // Kernel functions:
 /////////////////////////////
@@ -39,31 +85,4 @@ const char *txt_format_hex_int32(char dst[8], int32_t n)
     dst[6] = tbl_hex[x[0] >> 4];
     dst[7] = tbl_hex[x[0] & 15];
     return dst;
-}
-
-char *hw_colortext = (char *) 0xb8000;
-
-unsigned int hw_txt_write_string(const char *msg, uint row, uint col, uint8_t color)
-{
-    char *vidmem = hw_colortext;
-    unsigned int i = 0;
-
-    i = (row*80*2)+(col*2);
-
-    while (*msg != 0)
-    {
-        vidmem[i] = *msg;
-        msg++;
-        i++;
-        vidmem[i] = color;
-        i++;
-    }
-
-    return 1;
-}
-
-void hw_txt_clear_row(uint row)
-{
-    for (unsigned int i = (row * 80 * 2); i < (row * 80 * 2) + (80 * 2); i += 2)
-        hw_colortext[i] = 0;
 }

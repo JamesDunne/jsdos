@@ -11,5 +11,6 @@ int main()
     int c;
     if ((c = sys_init()) != 0) return c;
     if ((c = sys_run()) != 0) return c;
+    sys_done();
     sys_sleep();
 }
