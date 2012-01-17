@@ -81,6 +81,14 @@ int printf(const char * format, ...)
     return 0;
 }
 
+#if __USE_FORTIFY_LEVEL > 1
+// Apparently only used when -O flag passed to gcc.
+int __printf_chk (int __flag, __const char *__restrict __format, ...)
+{
+    return 0;
+}
+#endif
+
 #if JITLIB_DEBUG
 
 // NOTE(jsd): This was here for jitlib-debug.c inclusion.

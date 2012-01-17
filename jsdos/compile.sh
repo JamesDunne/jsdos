@@ -1,5 +1,6 @@
 #!/bin/bash
-CFLAGS='-fno-builtin -nostdlib -nostartfiles -nodefaultlibs -std=c99 -pedantic'
+# NOTE: -O2 causes runtime failure in qemu
+CFLAGS='-fno-builtin -nostdlib -nostartfiles -nodefaultlibs -std=c99 -pedantic -Os -O1 -funroll-loops'
 BUILD='../build'
 LOOPDEV='/dev/loop7'
 
