@@ -1,0 +1,17 @@
+Experimental AMD64 OS.
+
+Summary:
+Load nearly all kernel and driver code from bitcode files and JIT them
+into memory for native machine execution. Bitcode loader will verify
+memory safety and abort loading if proved unsafe.
+
+Build:
+* `cd jsdos/`
+* `./compile.sh && ./run.sh`
+
+Requirements:
+* Linux x86_64 OS to build on
+* GCC with C99 support
+* QEMU with AMD64 emulation support
+* Your linux user account must be able to `sudo`
+* Your linux user account must be added to the `disk` group to use `losetup`

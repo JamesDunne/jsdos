@@ -10,16 +10,21 @@
 // pointer to a function accepting one argument of type long and returning long value
 typedef int32_t (* plfl)(int32_t);
 
+// Called first from main to init the system.
 int sys_init()
 {
+    // Return 0 to indicate successful initialization.
     return 0;
 }
 
+// Called to halt the system indefinitely.
 void sys_sleep()
 {
+    // TODO(jsd): Want an actual CPU sleep here to save power.
     while (1) { }
 }
 
+// Called from main to run the system after `sys_init`.
 int sys_run()
 {
     // creates a new instance of the compiler
