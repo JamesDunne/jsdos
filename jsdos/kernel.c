@@ -74,7 +74,7 @@ void hw_txt_vscroll_up(uint rows)
 
 const char tbl_hex[16] = "0123456789ABCDEF";
 
-const char *txt_format_hex_int8(char dst[2], int8_t n)
+char *txt_format_hex_int8(char dst[2], int8_t n)
 {
     unsigned char *x = (unsigned char *)&n;
     dst[0] = tbl_hex[x[0] >> 4];
@@ -82,7 +82,7 @@ const char *txt_format_hex_int8(char dst[2], int8_t n)
     return dst;
 }
 
-const char *txt_format_hex_int16(char dst[4], int16_t n)
+char *txt_format_hex_int16(char dst[4], int16_t n)
 {
     unsigned char *x = (unsigned char *)&n;
     dst[0] = tbl_hex[x[1] >> 4];
@@ -92,7 +92,7 @@ const char *txt_format_hex_int16(char dst[4], int16_t n)
     return dst;
 }
 
-const char *txt_format_hex_int32(char dst[8], int32_t n)
+char *txt_format_hex_int32(char dst[8], int32_t n)
 {
     unsigned char *x = (unsigned char *)&n;
     dst[0] = tbl_hex[x[3] >> 4];
@@ -103,5 +103,27 @@ const char *txt_format_hex_int32(char dst[8], int32_t n)
     dst[5] = tbl_hex[x[1] & 15];
     dst[6] = tbl_hex[x[0] >> 4];
     dst[7] = tbl_hex[x[0] & 15];
+    return dst;
+}
+
+char *txt_format_hex_int64(char dst[16], int64_t n)
+{
+    unsigned char *x = (unsigned char *)&n;
+    dst[ 0] = tbl_hex[x[7] >> 4];
+    dst[ 1] = tbl_hex[x[7] & 15];
+    dst[ 2] = tbl_hex[x[6] >> 4];
+    dst[ 3] = tbl_hex[x[6] & 15];
+    dst[ 4] = tbl_hex[x[5] >> 4];
+    dst[ 5] = tbl_hex[x[5] & 15];
+    dst[ 6] = tbl_hex[x[4] >> 4];
+    dst[ 7] = tbl_hex[x[4] & 15];
+    dst[ 8] = tbl_hex[x[3] >> 4];
+    dst[ 9] = tbl_hex[x[3] & 15];
+    dst[10] = tbl_hex[x[2] >> 4];
+    dst[11] = tbl_hex[x[2] & 15];
+    dst[12] = tbl_hex[x[1] >> 4];
+    dst[13] = tbl_hex[x[1] & 15];
+    dst[14] = tbl_hex[x[0] >> 4];
+    dst[15] = tbl_hex[x[0] & 15];
     return dst;
 }
