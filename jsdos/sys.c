@@ -17,7 +17,7 @@ int sys_init()
 void sys_done()
 {
     // NOTE(jsd): for testing purposes
-    assert(0);
+    //assert(0);
 }
 
 // Called to halt the system indefinitely.
@@ -25,6 +25,27 @@ void sys_sleep()
 {
     // TODO(jsd): Want an actual CPU sleep here to save power.
     while (1) { }
+}
+
+void visit_allocation_block(void *pblock)
+{
+    char intfmt[17] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+    mem_alloc_t *b = (mem_alloc_t *)pblock;
+
+    hw_txt_vscroll_up(1);
+    uint lastrow = hw_txt_get_rows() - 1;
+
+    size_t pos = hw_txt_write_string("0x", lastrow, 0, 0x7);
+    pos += hw_txt_write_string(txt_format_hex_int64(intfmt, (int64_t)b), lastrow, pos, 0x7);
+#ifdef JSDOS_DEBUG
+    // Dump the malloc() call location that allocated the leaked block:
+    pos += hw_txt_write_string(": ", lastrow, pos, 0x7);
+    pos += hw_txt_write_string(b->loc_malloc.file, lastrow, pos, 0x7);
+    pos += hw_txt_write_string(" (", lastrow, pos, 0x7);
+    pos += hw_txt_write_string(txt_format_hex_int64(intfmt, b->loc_malloc.line) + 4, lastrow, pos, 0x7);
+    pos += hw_txt_write_string(") ", lastrow, pos, 0x7);
+    pos += hw_txt_write_string(b->loc_malloc.function, lastrow, pos, 0x7);
+#endif
 }
 
 // Called from main to run the system after `sys_init`.
@@ -74,6 +95,8 @@ int sys_run()
     // compiles the above defined code
     jit_generate_code(p);
 
+    uint lastrow = hw_txt_get_rows() - 1;
+
     char intfmt[17] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
     size_t pos;
     pos = hw_txt_write_string("foo(  1): ", 2, 0, 0x7);
@@ -87,15 +110,24 @@ int sys_run()
     // this functionality is provided through the `gcc' and `objdump'
     // jit_dump_code(p, 0);
 
+    // Dump memory malloc'd:
+    pos = hw_txt_write_string("malloc'd: 0x", lastrow - 2, 0, 0x9);
+    hw_txt_write_string(txt_format_hex_int64(intfmt, mem_get_alloced()), lastrow - 2, pos, 0x9);
+
     // cleanup
     jit_free(p);
 
-    uint lastrow = hw_txt_get_rows() - 1;
+    pos = hw_txt_write_string("malloc'd: 0x", lastrow - 1, 0, 0x9);
+    hw_txt_write_string(txt_format_hex_int64(intfmt, mem_get_alloced()), lastrow - 1, pos, 0x9);
+
+    mem_walk_leaked(&visit_allocation_block);
+
+#if 0
     hw_txt_clear_row(lastrow);
     hw_txt_write_string("done", lastrow, 0, 0xf);
 
     // Test the vertical scroll function:
     hw_txt_vscroll_up(2);
-
+#endif
     return 0;
 }

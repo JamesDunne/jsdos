@@ -1,10 +1,3 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <unistd.h>
-
 #include "kernel.h"
 
 // stdlib "implementations":
@@ -12,22 +5,93 @@
 
 // Ladies and gentlemen, the dumbest malloc ever:
 
-void *malloc(size_t size)
+void *mem_next = (void *)MEM_DATA;
+size_t mem_alloced = 0;
+
+void *malloc_dbg(size_t size, const char *file, uint line, const char *function)
 {
-    static void *next = (void *)MEM_DATA;
-    void *ptr = next;
-    next = (void*)((char *)next + size);
+    // Book-keeping:
+    mem_alloc_t *r = (mem_alloc_t *)mem_next;
+    r->allocated = size;
+    r->freed = 0;
+#ifdef JSDOS_DEBUG
+    r->loc_malloc.avail = true;
+    r->loc_malloc.file = file;
+    r->loc_malloc.line = line;
+    r->loc_malloc.function = function;
+    r->loc_free.avail = false;
+#endif
+    mem_alloced += size;
+
+    void *ptr = (void *)((char *)r + sizeof(mem_alloc_t));
+    mem_next = (void *)((char *)ptr + size);
+
+    // Clear out the tail malloc record:
+    mem_alloc_t *tail = (mem_alloc_t *)mem_next;
+    tail->allocated = 0;
+    tail->freed = 0;
+
     return ptr;
 }
 
+#ifndef JSDOS_DEBUG
+
+void *malloc(size_t size)
+{
+    return malloc_dbg(size, __FILE__, __LINE__, __FUNCTION__);
+}
+
+#endif
+
 void *realloc(void *ptr, size_t size)
 {
+    free(ptr);
     return malloc(size);
 }
 
+void free_dbg(void *ptr, const char *file, uint line, const char *function)
+{
+    mem_alloc_t *r = (mem_alloc_t *)((char *)ptr - sizeof(mem_alloc_t));
+    if (r->freed > 0) assert("double free!");
+
+    // Book-keeping:
+    mem_alloced -= r->allocated;
+    r->freed = r->allocated;
+#ifdef JSDOS_DEBUG
+    r->loc_free.avail = true;
+    r->loc_free.file = file;
+    r->loc_free.line = line;
+    r->loc_free.function = function;
+#endif
+}
+
+#ifndef JSDOS_DEBUG
+
 void free(void *ptr)
 {
-    // Nothing to do
+    free_dbg(ptr, __FILE__, __LINE__, __FUNCTION__);
+}
+
+#endif
+
+size_t mem_get_alloced() { return mem_alloced; }
+
+void mem_walk_leaked(action1_v_fp visit)
+{
+    // Start at the first block:
+    mem_alloc_t *c = (mem_alloc_t *)MEM_DATA;
+
+    while (c->allocated != 0)
+    {
+        // Block is still allocated:
+        if (c->freed == 0)
+        {
+            visit((void *)c);
+        }
+
+        // Move to next block:
+        c = (mem_alloc_t *)((char *)c + sizeof(mem_alloc_t) + c->allocated);
+    }
 }
 
 void *memcpy(void *dst, const void *src, size_t n)

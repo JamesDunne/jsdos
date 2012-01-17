@@ -1,9 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
 #include <unistd.h>
+#include <assert.h>
 
-typedef unsigned int uint;
+// Simple function pointers:
+typedef void (* action1_v_fp)(void *p1);
 
 // Pure64 constants:
 ////////////////////
@@ -12,6 +16,35 @@ typedef unsigned int uint;
 #define MEM_CODE (0x100000ULL)
 // Reserve 32MiB for system code:
 #define MEM_DATA (MEM_CODE + (0x100000ULL * 31ULL))
+
+// Debugging:
+/////////////
+
+#if JSDOS_DEBUG
+typedef struct {
+    bool        avail;
+    const char  *file;
+    uint        line;
+    const char  *function;
+} debugloc_t;
+#endif
+
+// Memory:
+//////////
+
+typedef struct {
+    size_t      allocated;
+    size_t      freed;
+#if JSDOS_DEBUG
+    // Track source code locations where malloc() and free() were called:
+    debugloc_t  loc_malloc;
+    debugloc_t  loc_free;
+#endif
+    // chunk of malloc'd memory immediately follows.
+} mem_alloc_t;
+
+size_t mem_get_alloced();
+void mem_walk_leaked(action1_v_fp visit);
 
 // Hardware 80x25 text-mode screen functions:
 /////////////////////////////////////////////
