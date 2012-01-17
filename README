@@ -15,6 +15,9 @@ Requirements:
 * QEMU with AMD64 emulation support
 * Your linux user account must be able to `sudo`
 * Your linux user account must be added to the `disk` group to use `losetup`
+<<<<<<< HEAD
 
 Included:
 * MyJIT ( http://myjit.sourceforge.net/ )
+=======
+>>>>>>> 82308368945585e2b4891fb79133b588a01d9c08
