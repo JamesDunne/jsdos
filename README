@@ -15,9 +15,46 @@ Requirements:
 * QEMU with AMD64 emulation support
 * Your linux user account must be able to `sudo`
 * Your linux user account must be added to the `disk` group to use `losetup`
-<<<<<<< HEAD
 
 Included:
 * MyJIT ( http://myjit.sourceforge.net/ )
-=======
->>>>>>> 82308368945585e2b4891fb79133b588a01d9c08
+
+Current status:
+* Woefully incomplete
+* MyJIT library included into binary KERNEL64.SYS
+* Only required stdlib.h functions are implemented; just scratch code for now
+* No IR bitcode format defined yet
+* No drivers implemented
+
+Roadmap:
+* Runtime Options:
+  * Possibly make use of LLVM's bitcode with its SSA form
+  * Each SSA value maps directly to a MyJIT virtual register
+  * MyJIT will use its register mapping system to map virtual registers onto machine registers
+  * JIT considerations:
+    * Need I/O opcodes (`IN AL, DX`, `OUT AL, DX`, etc.)
+  * Need verifiable safety system
+    * Define multiple levels of code access
+      * Level 0 is kernel level, including H/W access opcodes
+      * Level 1 is driver level, interface directly with kernel to access H/W via communication queues
+      * Level 2 is driver abstraction level, providing abstracted interfaces for driver communication
+      * Level 3 is application level, no H/W access
+      * Each level may only communicate with its direct parent level
+    * All OS functions passed via interfaces
+      * Declarative security model
+      * Any interface's function may be nil-ed out if permission is denied and/or not declared
+  * Functions are expressed as coroutines (maybe?)
+  * No heavy threads.
+  * No shared state whatsoever.
+  * No blocking OS calls; all async I/O.
+  * Each CPU core runs an async event loop to invoke/continue function execution.
+  * Best-case cooperatively scheduled drivers/applications where each yields at defined points, worst-case time-sliced scheduling.
+* Language Options:
+  * Requirements:
+    * Need memory safety (no pointer arithmetic and no arbitrary pointer values)
+    * All system interaction should go through interfaces (actual vtables)
+    * Cross-core communication primitives (e.g. queues)
+  * Seriously considering using Google's Go language
+    * Its interface system looks clean and simple
+    * Might have to add type-safe options for memory-mapped hardware I/O
+    * GC is essential
