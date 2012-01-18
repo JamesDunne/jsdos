@@ -539,6 +539,8 @@ void jit_assign_regs(struct jit * jit)
 
 void jit_reg_allocator_free(struct jit_reg_allocator * a)
 {
+    if (a->fp_arg_regs) JIT_FREE(a->fp_arg_regs);
+    if (a->gp_arg_regs) JIT_FREE(a->gp_arg_regs);
 	if (a->fp_regs) JIT_FREE(a->fp_regs);
 	JIT_FREE(a->gp_regs);
 	JIT_FREE(a);
