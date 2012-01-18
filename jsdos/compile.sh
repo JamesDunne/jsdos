@@ -3,6 +3,7 @@
 CFLAGS='-fno-builtin -nostdlib -nostartfiles -nodefaultlibs -std=c99 -pedantic -Os -O1 -funroll-loops -DJSDOS_DEBUG -I./include'
 BUILD='../build'
 LOOPDEV='/dev/loop7'
+IMGFILE="jsdos-`date +%Y%m%d`.img"
 
 echo Compiling... && \
  gcc $CFLAGS -o $BUILD/main.o -c main.c && \
@@ -13,19 +14,19 @@ echo Compiling... && \
  echo Linking $BUILD/KERNEL64.SYS... && \
  ld -T kernel64.ld -o $BUILD/KERNEL64.SYS $BUILD/main.o $BUILD/kernel.o $BUILD/stdlib.o $BUILD/sys.o $BUILD/jitlib-core.o && \
  pushd $BUILD &>/dev/null && \
- echo Extracting os.img.gz... && \
+ echo Extracting $IMGFILE.gz... && \
  mkdir -p disk && \
- gzip -cd os.img.gz > os.img && \
- echo losetup $LOOPDEV os.img... && \
+ gzip -cd vanilla.img.gz > $IMGFILE && \
+ echo losetup $LOOPDEV $IMGFILE... && \
  (losetup -d $LOOPDEV &>/dev/null; true) && \
- losetup -o32256 $LOOPDEV os.img && \
- echo Mounting os.img... && \
+ losetup -o32256 $LOOPDEV $IMGFILE && \
+ echo Mounting $IMGFILE... && \
  sudo mount -tvfat $LOOPDEV ./disk && \
  echo Updating KERNEL64.SYS... && \
  sudo cp KERNEL64.SYS ./disk/ && \
  sleep 0.1 && \
- echo Unmounting os.img... && \
+ echo Unmounting $IMGFILE... && \
  sudo umount ./disk && \
  losetup -d $LOOPDEV && \
- echo os.img setup complete. && \
+ echo $IMGFILE setup complete. && \
  popd &>/dev/null
