@@ -103,8 +103,8 @@ void *memcpy(void *dst, const void *src, size_t n)
     for (size_t i = 0; i < n; i += sizeof(intptr_t))
         *dstp++ = *srcp++;
 #else
-    char *dstp = dst;
-    const char *srcp = src;
+    char *dstp = (char *)dst;
+    const char *srcp = (const char *)src;
     for (size_t i = 0; i < n; ++i)
         *dstp++ = *srcp++;
 #endif
@@ -114,21 +114,17 @@ void *memcpy(void *dst, const void *src, size_t n)
 // Called by assert(n) macro, expected to halt execution:
 void __assert_fail(const char *assertion, const char *file, unsigned int line, const char *function)
 {
-    uint lastrow = hw_txt_get_rows() - 1;
+    char tmp[9];
+    memcpy(tmp, "\0\0\0\0\0\0\0\0\0", 9);
 
-    hw_txt_clear_row(lastrow - 1);
-    hw_txt_clear_row(lastrow);
-
-    char tmp[9] = "\0\0\0\0\0\0\0\0\0";
     size_t pos = 0;
 
     if (file == NULL) file = "<no file>";
     if (function == NULL) function = "<no function>";
     if (assertion == NULL) assertion = "<no assertion>";
 
-#if 1
     hw_txt_set_color(0x0F);
-    printf("assertion failure in ");
+    printf("\nassertion failure in ");
     printf(file);
     printf(" (");
     printf(txt_format_hex_int32(tmp, line));
@@ -138,16 +134,6 @@ void __assert_fail(const char *assertion, const char *file, unsigned int line, c
 
     printf(assertion);
     hw_txt_set_color(0x07);
-#else
-    pos += hw_txt_write_string("assertion failure in ", lastrow - 1, pos, 0xf);
-    pos += hw_txt_write_string(file, lastrow - 1, pos, 0xf);
-    pos += hw_txt_write_string(" (", lastrow - 1, pos, 0xf);
-    pos += hw_txt_write_string(txt_format_hex_int32(tmp, line), lastrow - 1, pos, 0xf);
-    pos += hw_txt_write_string("): ", lastrow - 1, pos, 0xf);
-    pos += hw_txt_write_string(function, lastrow - 1, pos, 0xf);
-
-    hw_txt_write_string(assertion, lastrow, 0, 0xf);
-#endif
 
     // Halt the system:
     sys_sleep();
