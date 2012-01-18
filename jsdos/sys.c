@@ -50,7 +50,8 @@ void sys_sleep()
 int sys_run()
 {
     printf("123456789012345678901234567890123456789012345678901234567890123456789012345678901\n");
-    printf("hello\n");
+    printf("hello\n\na\nb\ncdef");
+    printf("\n\n");
 
     // creates a new instance of the compiler
     struct jit * p = jit_init();
@@ -142,9 +143,7 @@ int sys_run()
     printf(txt_format_hex_int64(intfmt, mem_get_alloced()));
     printf("\n");
 
-#if 0
     printf("done");
-#endif
 
     return 0;
 }

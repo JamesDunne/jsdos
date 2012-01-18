@@ -8,6 +8,10 @@ volatile char *hw_txt_colorbuf = (char *) 0xb8000;
 uint hw_txt_cols = 80;
 uint hw_txt_rows = 25;
 
+uint hw_txt_stdout_row = 24, hw_txt_stdout_col = 0;
+uint hw_txt_scrolled = 0;
+uint8_t hw_txt_color = 0x07;
+
 // Writes a NUL-terminated string in a certain color to a row,col position on the text-mode screen
 // and returns the number of characters written (even if they're wrapped to the next row).
 size_t hw_txt_write_string(const char *msg, uint row, uint col, uint8_t color)
@@ -80,11 +84,9 @@ void hw_txt_vscroll_up(uint rows)
         hw_txt_clear_row(row);
 }
 
-uint hw_txt_stdout_row = 0, hw_txt_stdout_col = 0;
-uint hw_txt_scrolled = 25;
-uint8_t hw_txt_color = 0x07;
 volatile int _unused = 0;
 
+// Artificial delay:
 void delay()
 {
     int j = 0;
@@ -100,23 +102,6 @@ void hw_txt_set_color(uint8_t color)
     hw_txt_color = color;
 }
 
-void _do_newline()
-{
-    if (++hw_txt_stdout_row >= hw_txt_rows)
-    {
-        if (++hw_txt_scrolled >= (hw_txt_rows/4))
-        {
-            delay();
-            hw_txt_scrolled = 0;
-        }
-
-        hw_txt_stdout_row = hw_txt_rows - 1;
-        hw_txt_vscroll_up(1);
-    }
-
-    hw_txt_stdout_col = 0;
-}
-
 int printf(const char * format, ...)
 {
     // TODO(jsd): handle va_args
@@ -128,21 +113,45 @@ int printf(const char * format, ...)
     {
         if (*p == '\n')
         {
-            _do_newline();
-
-            ++p;
+            // Move to the next row at column 0:
+            ++hw_txt_stdout_row;
+            hw_txt_stdout_col = 0;
         }
-        else
+
+        // Check cursor column bounds:
+        if (hw_txt_stdout_col >= hw_txt_cols)
         {
+            ++hw_txt_stdout_row;
+            hw_txt_stdout_col = 0;
+        }
+
+        // Check cursor row bounds:
+        if (hw_txt_stdout_row >= hw_txt_rows)
+        {
+            if (++hw_txt_scrolled >= (hw_txt_rows/4))
+            {
+                delay();
+                hw_txt_scrolled = 0;
+            }
+
+            // Scroll up:
+            hw_txt_stdout_row = hw_txt_rows - 1;
+            hw_txt_vscroll_up(1);
+
+            hw_txt_stdout_col = 0;
+        }
+
+        if (*p != '\n')
+        {
+            // Write the character and its color:
             hw_txt_colorbuf[(hw_txt_stdout_row * hw_txt_cols * 2) + (hw_txt_stdout_col * 2) + 0] = *p;
             hw_txt_colorbuf[(hw_txt_stdout_row * hw_txt_cols * 2) + (hw_txt_stdout_col * 2) + 1] = hw_txt_color;
 
-            if (++hw_txt_stdout_col >= hw_txt_cols)
-            {
-                _do_newline();
-            }
-            ++p;
+            // Advance the cursor:
+            ++hw_txt_stdout_col;
         }
+
+        ++p;
     }
 
     return 0;
