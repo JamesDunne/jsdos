@@ -123,25 +123,109 @@ void __assert_fail(const char *assertion, const char *file, unsigned int line, c
     size_t pos = 0;
 
     if (file == NULL) file = "<no file>";
+    if (function == NULL) function = "<no function>";
+    if (assertion == NULL) assertion = "<no assertion>";
+
+#if 1
+    hw_txt_set_color(0x0F);
+    printf("assertion failure in ");
+    printf(file);
+    printf(" (");
+    printf(txt_format_hex_int32(tmp, line));
+    printf("): ");
+    printf(function);
+    printf("\n");
+
+    printf(assertion);
+    hw_txt_set_color(0x07);
+#else
     pos += hw_txt_write_string("assertion failure in ", lastrow - 1, pos, 0xf);
     pos += hw_txt_write_string(file, lastrow - 1, pos, 0xf);
     pos += hw_txt_write_string(" (", lastrow - 1, pos, 0xf);
     pos += hw_txt_write_string(txt_format_hex_int32(tmp, line), lastrow - 1, pos, 0xf);
     pos += hw_txt_write_string("): ", lastrow - 1, pos, 0xf);
-    if (function == NULL) function = "<no function>";
     pos += hw_txt_write_string(function, lastrow - 1, pos, 0xf);
 
-    if (assertion == NULL) assertion = "<no assertion>";
     hw_txt_write_string(assertion, lastrow, 0, 0xf);
+#endif
 
     // Halt the system:
     sys_sleep();
 }
 
+uint hw_txt_stdout_row = 0, hw_txt_stdout_col = 0;
+uint hw_txt_scrolled = 0;
+uint8_t hw_txt_color = 0x07;
+volatile int _unused = 0;
+
+void delay()
+{
+    int j = 0;
+    for (int i = 0; i < 1000000000; ++i)
+    {
+        ++j;
+    }
+    _unused = j;
+}
+
+void hw_txt_set_color(uint8_t color)
+{
+    hw_txt_color = color;
+}
+
+void _print_wrap(const char *msg, size_t n)
+{
+    // Write `n` chars from `msg`:
+    size_t m = hw_txt_write_stringn(msg, n, hw_txt_stdout_row, hw_txt_stdout_col, hw_txt_color);
+
+    // Move cursor:
+    hw_txt_stdout_row += ((m + hw_txt_stdout_col) / hw_txt_get_cols());
+    hw_txt_stdout_col = ((m + hw_txt_stdout_col) % hw_txt_get_cols());
+}
+
 int printf(const char * format, ...)
 {
     // TODO(jsd): handle va_args
-    hw_txt_write_string(format, 23, 0, 0xf);
+    const char *msg = format;
+    const char *p = msg;
+    size_t n = 0;
+
+    while (*p != 0)
+    {
+        if (*p == '\n')
+        {
+            _print_wrap(msg, n);
+
+            // newline:
+            if (++hw_txt_stdout_row >= hw_txt_get_rows())
+            {
+                hw_txt_stdout_row = hw_txt_get_rows() - 1;
+                hw_txt_vscroll_up(1);
+
+                if (++hw_txt_scrolled >= hw_txt_get_rows())
+                {
+                    delay();
+                    hw_txt_scrolled = 0;
+                }
+            }
+
+            hw_txt_stdout_col = 0;
+            ++p;
+            n = 0;
+            msg = p;
+        }
+        else
+        {
+            ++p;
+            ++n;
+        }
+    }
+
+    if (n > 0)
+    {
+        _print_wrap(msg, n);
+    }
+
     return 0;
 }
 
@@ -149,7 +233,7 @@ int printf(const char * format, ...)
 // Apparently only used when -O flag passed to gcc.
 int __printf_chk (int __flag, __const char *__restrict __format, ...)
 {
-    return 0;
+    return printf(__format);
 }
 #endif
 

@@ -315,10 +315,8 @@ void jit_generate_code(struct jit * jit)
 
     /* moves the code to its final destination */
     int code_size = jit->ip - jit->buf;
-#if 0
-    void * mem;
-    posix_memalign(&mem, sysconf(_SC_PAGE_SIZE), code_size);
-    mprotect(mem, code_size, PROT_READ | PROT_EXEC | PROT_WRITE);
+#if 1
+    void * mem = malloc(code_size);
     memcpy(mem, jit->buf, code_size);
     JIT_FREE(jit->buf);
 #else

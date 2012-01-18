@@ -32,6 +32,19 @@ void visit_allocation_block(void *pblock)
     char intfmt[17] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
     mem_alloc_t *b = (mem_alloc_t *)pblock;
 
+#if 1
+    printf("0x");
+    printf(txt_format_hex_int64(intfmt, (int64_t)b));
+#ifdef JSDOS_DEBUG
+    printf(": ");
+    printf(b->loc_malloc.file);
+    printf(" (");
+    printf(txt_format_hex_int64(intfmt, b->loc_malloc.line));
+    printf(") ");
+    printf(b->loc_malloc.function);
+#endif
+    printf("\n");
+#else
     hw_txt_vscroll_up(1);
     uint lastrow = hw_txt_get_rows() - 1;
 
@@ -45,6 +58,7 @@ void visit_allocation_block(void *pblock)
     pos += hw_txt_write_string(txt_format_hex_int64(intfmt, b->loc_malloc.line) + 4, lastrow, pos, 0x7);
     pos += hw_txt_write_string(") ", lastrow, pos, 0x7);
     pos += hw_txt_write_string(b->loc_malloc.function, lastrow, pos, 0x7);
+#endif
 #endif
 }
 

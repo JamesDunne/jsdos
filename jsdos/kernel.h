@@ -50,11 +50,13 @@ void mem_walk_leaked(action1_v_fp visit);
 /////////////////////////////////////////////
 
 size_t hw_txt_write_string(const char *msg, uint row, uint col, uint8_t color);
+size_t hw_txt_write_stringn(const char *msg, size_t len, uint row, uint col, uint8_t color);
 void hw_txt_clear_row(uint row);
 void hw_txt_clear_screen();
 uint hw_txt_get_rows();
 uint hw_txt_get_cols();
 void hw_txt_vscroll_up(uint rows);
+void hw_txt_set_color(uint8_t color);
 
 // Formatting functions:
 ////////////////////////

@@ -13,15 +13,26 @@ uint hw_txt_rows = 25;
 size_t hw_txt_write_string(const char *msg, uint row, uint col, uint8_t color)
 {
     size_t i = (row * hw_txt_cols * 2) + (col * 2);
-    size_t l = 0;
+    size_t l;
 
-    while (*msg != 0)
+    for (l = 0; *msg != 0; ++l, i += 2)
     {
-        hw_txt_colorbuf[i+0] = *msg;
-        msg++;
+        hw_txt_colorbuf[i+0] = *msg++;
         hw_txt_colorbuf[i+1] = color;
-        i += 2;
-        l++;
+    }
+
+    return l;
+}
+
+size_t hw_txt_write_stringn(const char *msg, size_t len, uint row, uint col, uint8_t color)
+{
+    size_t i = (row * hw_txt_cols * 2) + (col * 2);
+    size_t l;
+
+    for (l = 0; (l < len) && (*msg != 0); ++l, i += 2)
+    {
+        hw_txt_colorbuf[i+0] = *msg++;
+        hw_txt_colorbuf[i+1] = color;
     }
 
     return l;
