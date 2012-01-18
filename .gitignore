@@ -2,4 +2,6 @@
 *.SYS
 *.sys
 *.img
+*.gz
 *.o
+release/

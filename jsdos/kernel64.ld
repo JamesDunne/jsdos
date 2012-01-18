@@ -10,7 +10,7 @@ SECTIONS
 	{
 		*(.data)
 	}
-	.bss :
+	.bss 0x00000000001C00000 :
 	{
 		*(.bss)
 	}
