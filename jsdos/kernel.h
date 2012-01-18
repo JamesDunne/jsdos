@@ -44,7 +44,7 @@ typedef struct {
 } mem_alloc_t;
 
 size_t mem_get_alloced();
-void mem_walk_leaked(action1_v_fp visit);
+void mem_walk_leaked();
 
 // Hardware 80x25 text-mode screen functions:
 /////////////////////////////////////////////

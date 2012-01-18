@@ -21,7 +21,7 @@ void *malloc_dbg(size_t size, const char *file, uint line, const char *function)
     r->loc_malloc.function = function;
     r->loc_free.avail = false;
 #endif
-    mem_alloced += size;
+    mem_alloced += r->allocated;
 
     void *ptr = (void *)((char *)r + sizeof(mem_alloc_t));
     mem_next = (void *)((char *)ptr + size);
@@ -34,15 +34,6 @@ void *malloc_dbg(size_t size, const char *file, uint line, const char *function)
     return ptr;
 }
 
-#ifndef JSDOS_DEBUG
-
-void *malloc(size_t size)
-{
-    return malloc_dbg(size, __FILE__, __LINE__, __FUNCTION__);
-}
-
-#endif
-
 void *realloc(void *ptr, size_t size)
 {
     free(ptr);
@@ -52,7 +43,8 @@ void *realloc(void *ptr, size_t size)
 void free_dbg(void *ptr, const char *file, uint line, const char *function)
 {
     mem_alloc_t *r = (mem_alloc_t *)((char *)ptr - sizeof(mem_alloc_t));
-    if (r->freed > 0) assert("double free!");
+    assert(r->allocated > 0);
+    assert(r->freed == 0);
 
     // Book-keeping:
     mem_alloced -= r->allocated;
@@ -63,21 +55,17 @@ void free_dbg(void *ptr, const char *file, uint line, const char *function)
     r->loc_free.line = line;
     r->loc_free.function = function;
 #endif
+
+    memset(ptr, 0xFC, r->allocated);
 }
-
-#ifndef JSDOS_DEBUG
-
-void free(void *ptr)
-{
-    free_dbg(ptr, __FILE__, __LINE__, __FUNCTION__);
-}
-
-#endif
 
 size_t mem_get_alloced() { return mem_alloced; }
 
-void mem_walk_leaked(action1_v_fp visit)
+void mem_walk_leaked()
 {
+    char tmp[17];
+    memcpy(tmp, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 17);
+
     // Start at the first block:
     mem_alloc_t *c = (mem_alloc_t *)MEM_DATA;
 
@@ -86,13 +74,50 @@ void mem_walk_leaked(action1_v_fp visit)
         // Block is still allocated:
         if (c->freed == 0)
         {
-            visit((void *)c);
+            printf("0x");
+            printf(txt_format_hex_int64(tmp, (int64_t)((char *)c + sizeof(mem_alloc_t))) + 8);
+            printf(", 0x");
+            printf(txt_format_hex_int64(tmp, c->allocated) + 12);
+#ifdef JSDOS_DEBUG
+            printf(" in ");
+            printf(c->loc_malloc.function);
+            printf(" (");
+            printf(c->loc_malloc.file);
+            printf(":0x");
+            printf(txt_format_hex_int64(tmp, c->loc_malloc.line) + 12);
+            printf(")");
+#endif
+            printf("\n");
+        }
+        else
+        {
+#if 0
+            printf("F 0x");
+            printf(txt_format_hex_int64(tmp, (int64_t)((char *)c + sizeof(mem_alloc_t))) + 8);
+            printf(", 0x");
+            printf(txt_format_hex_int64(tmp, c->allocated) + 12);
+            printf("\n");
+#endif
         }
 
         // Move to next block:
         c = (mem_alloc_t *)((char *)c + sizeof(mem_alloc_t) + c->allocated);
     }
 }
+
+#ifndef JSDOS_DEBUG
+
+void *malloc(size_t size)
+{
+    return malloc_dbg(size, __FILE__, __LINE__, __FUNCTION__);
+}
+
+void free(void *ptr)
+{
+    free_dbg(ptr, __FILE__, __LINE__, __FUNCTION__);
+}
+
+#endif
 
 void *memcpy(void *dst, const void *src, size_t n)
 {
@@ -109,6 +134,14 @@ void *memcpy(void *dst, const void *src, size_t n)
         *dstp++ = *srcp++;
 #endif
     return dst;
+}
+
+void *memset(void *s, int c, size_t n)
+{
+    char *dstp = (char *)s;
+    for (size_t i = 0; i < n; ++i)
+        *dstp++ = c;
+    return s;
 }
 
 // Called by assert(n) macro, expected to halt execution:
@@ -138,90 +171,6 @@ void __assert_fail(const char *assertion, const char *file, unsigned int line, c
     // Halt the system:
     sys_sleep();
 }
-
-uint hw_txt_stdout_row = 0, hw_txt_stdout_col = 0;
-uint hw_txt_scrolled = 0;
-uint8_t hw_txt_color = 0x07;
-volatile int _unused = 0;
-
-void delay()
-{
-    int j = 0;
-    for (int i = 0; i < 1000000000; ++i)
-    {
-        ++j;
-    }
-    _unused = j;
-}
-
-void hw_txt_set_color(uint8_t color)
-{
-    hw_txt_color = color;
-}
-
-void _print_wrap(const char *msg, size_t n)
-{
-    // Write `n` chars from `msg`:
-    size_t m = hw_txt_write_stringn(msg, n, hw_txt_stdout_row, hw_txt_stdout_col, hw_txt_color);
-
-    // Move cursor:
-    hw_txt_stdout_row += ((m + hw_txt_stdout_col) / hw_txt_get_cols());
-    hw_txt_stdout_col = ((m + hw_txt_stdout_col) % hw_txt_get_cols());
-}
-
-int printf(const char * format, ...)
-{
-    // TODO(jsd): handle va_args
-    const char *msg = format;
-    const char *p = msg;
-    size_t n = 0;
-
-    while (*p != 0)
-    {
-        if (*p == '\n')
-        {
-            _print_wrap(msg, n);
-
-            // newline:
-            if (++hw_txt_stdout_row >= hw_txt_get_rows())
-            {
-                hw_txt_stdout_row = hw_txt_get_rows() - 1;
-                hw_txt_vscroll_up(1);
-
-                if (++hw_txt_scrolled >= hw_txt_get_rows())
-                {
-                    delay();
-                    hw_txt_scrolled = 0;
-                }
-            }
-
-            hw_txt_stdout_col = 0;
-            ++p;
-            n = 0;
-            msg = p;
-        }
-        else
-        {
-            ++p;
-            ++n;
-        }
-    }
-
-    if (n > 0)
-    {
-        _print_wrap(msg, n);
-    }
-
-    return 0;
-}
-
-#if __USE_FORTIFY_LEVEL > 1
-// Apparently only used when -O flag passed to gcc.
-int __printf_chk (int __flag, __const char *__restrict __format, ...)
-{
-    return printf(__format);
-}
-#endif
 
 #if JITLIB_DEBUG
 

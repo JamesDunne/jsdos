@@ -1,5 +1,5 @@
 /*
- * MyJIT 
+ * MyJIT
  * Copyright (C) 2010 Petr Krajca, <krajcap@inf.upol.cz>
  *
  * This library is free software; you can redistribute it and/or
@@ -11,7 +11,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -87,16 +87,20 @@
 #define R(x) (__mkreg(JIT_RTYPE_INT, JIT_RTYPE_REG, (x)))
 #define FR(x) (__mkreg(JIT_RTYPE_FLOAT, JIT_RTYPE_REG, (x)))
 
+extern void *malloc_dbg(size_t s, const char *file, unsigned int line, const char *function);
+
 #ifndef JIT_MALLOC
-#define JIT_MALLOC(x)	(malloc(x))
+#define JIT_MALLOC(x)	(malloc_dbg((x), __FILE__, __LINE__, __FUNCTION__))
 #endif
 
 #ifndef JIT_REALLOC
 #define JIT_REALLOC(x, size)	(realloc((x), (size)))
 #endif
 
+extern void free_dbg(void *p, const char *file, unsigned int line, const char *function);
+
 #ifndef JIT_FREE
-#define JIT_FREE(x)	(free(x))
+#define JIT_FREE(x)	(free_dbg((x), __FILE__, __LINE__, __FUNCTION__))
 #endif
 
 #define INT_SIZE (sizeof(int))

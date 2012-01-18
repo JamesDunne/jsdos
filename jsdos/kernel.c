@@ -80,6 +80,82 @@ void hw_txt_vscroll_up(uint rows)
         hw_txt_clear_row(row);
 }
 
+uint hw_txt_stdout_row = 0, hw_txt_stdout_col = 0;
+uint hw_txt_scrolled = 25;
+uint8_t hw_txt_color = 0x07;
+volatile int _unused = 0;
+
+void delay()
+{
+    int j = 0;
+    for (int i = 0; i < 2000000000; ++i)
+    {
+        ++j;
+    }
+    _unused = j;
+}
+
+void hw_txt_set_color(uint8_t color)
+{
+    hw_txt_color = color;
+}
+
+void _do_newline()
+{
+    if (++hw_txt_stdout_row >= hw_txt_rows)
+    {
+        if (++hw_txt_scrolled >= (hw_txt_rows/4))
+        {
+            delay();
+            hw_txt_scrolled = 0;
+        }
+
+        hw_txt_stdout_row = hw_txt_rows - 1;
+        hw_txt_vscroll_up(1);
+    }
+
+    hw_txt_stdout_col = 0;
+}
+
+int printf(const char * format, ...)
+{
+    // TODO(jsd): handle va_args
+    const char *msg = format;
+
+    const char *p = msg;
+
+    while (*p != 0)
+    {
+        if (*p == '\n')
+        {
+            _do_newline();
+
+            ++p;
+        }
+        else
+        {
+            hw_txt_colorbuf[(hw_txt_stdout_row * hw_txt_cols * 2) + (hw_txt_stdout_col * 2) + 0] = *p;
+            hw_txt_colorbuf[(hw_txt_stdout_row * hw_txt_cols * 2) + (hw_txt_stdout_col * 2) + 1] = hw_txt_color;
+
+            if (++hw_txt_stdout_col >= hw_txt_cols)
+            {
+                _do_newline();
+            }
+            ++p;
+        }
+    }
+
+    return 0;
+}
+
+#if __USE_FORTIFY_LEVEL > 1
+// Apparently only used when -O flag passed to gcc.
+int __printf_chk (int __flag, __const char *__restrict __format, ...)
+{
+    return printf(__format);
+}
+#endif
+
 // Kernel functions:
 /////////////////////////////
 

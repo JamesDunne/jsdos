@@ -4,11 +4,30 @@
 // pointer to a function accepting one argument of type long and returning long value
 typedef int64_t (* plfl)(int64_t);
 
+// Input a byte from a port
+inline unsigned char inportb(unsigned int port)
+{
+   unsigned char ret;
+   __asm__ volatile ("inb %%dx,%%al":"=a" (ret):"d" (port));
+   return ret;
+}
+
+// Output a byte to a port
+inline void outportb(unsigned int port, unsigned char value)
+{
+   __asm__ volatile ("outb %%al,%%dx": :"d" (port), "a" (value));
+}
+
 // Called first from main to init the system.
 int sys_init()
 {
     // Clear the text screen:
     hw_txt_clear_screen();
+
+    // Quick VGA register access to disable the hardware text cursor:
+    outportb(0x03D4, 0x0A);
+    int x = inportb(0x03D5);
+    outportb(0x03D5, x | (1 << 5));
 
     // Return 0 to indicate successful initialization.
     return 0;
@@ -17,7 +36,7 @@ int sys_init()
 void sys_done()
 {
     // NOTE(jsd): for testing purposes
-    assert(0);
+    //assert(0);
 }
 
 // Called to halt the system indefinitely.
@@ -25,26 +44,6 @@ void sys_sleep()
 {
     // TODO(jsd): Want an actual CPU sleep here to save power.
     while (1) { }
-}
-
-void visit_allocation_block(void *pblock)
-{
-    char intfmt[17];
-    memcpy(intfmt, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 17);
-
-    mem_alloc_t *b = (mem_alloc_t *)pblock;
-
-    printf("0x");
-    printf(txt_format_hex_int64(intfmt, (int64_t)b) + 8);
-#ifdef JSDOS_DEBUG
-    printf(": ");
-    printf(b->loc_malloc.file);
-    printf(" (");
-    printf(txt_format_hex_int64(intfmt, b->loc_malloc.line) + 8);
-    printf(") ");
-    printf(b->loc_malloc.function);
-#endif
-    printf("\n");
 }
 
 // Called from main to run the system after `sys_init`.
@@ -70,8 +69,9 @@ int sys_run()
     // takes the value in R(0), increments it by one, and stores the result into the
     // register R(1)
     jit_addi(p, R( 1), R( 0), 1);
-    // NOTE(jsd): testing the "unlimited" virtual register system here:
     jit_addi(p, R( 2), R( 1), 1);
+#if 0
+    // NOTE(jsd): testing the "unlimited" virtual register system here:
     jit_addi(p, R( 3), R( 2), 1);
     jit_addi(p, R( 4), R( 3), 1);
     jit_addi(p, R( 5), R( 4), 1);
@@ -93,6 +93,10 @@ int sys_run()
 
     // returns from the function and returns the value stored in the register R(19)
     jit_retr(p, R(19));
+#else
+    // returns from the function and returns the value stored in the register R(19)
+    jit_retr(p, R(2));
+#endif
 
     // compiles the above defined code
     jit_generate_code(p);
@@ -131,16 +135,16 @@ int sys_run()
 
     hw_txt_set_color(0x07);
 
-    mem_walk_leaked(visit_allocation_block);
+    mem_walk_leaked();
 
     //memcpy(intfmt, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 17);
     printf("leaked: 0x");
     printf(txt_format_hex_int64(intfmt, mem_get_alloced()));
     printf("\n");
-#if 0
-#endif
 
+#if 0
     printf("done");
+#endif
 
     return 0;
 }
