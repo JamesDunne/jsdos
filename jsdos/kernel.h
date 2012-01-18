@@ -49,8 +49,6 @@ void mem_walk_leaked();
 // Hardware 80x25 text-mode screen functions:
 /////////////////////////////////////////////
 
-size_t hw_txt_write_string(const char *msg, uint row, uint col, uint8_t color);
-size_t hw_txt_write_stringn(const char *msg, size_t len, uint row, uint col, uint8_t color);
 void hw_txt_clear_row(uint row);
 void hw_txt_clear_screen();
 uint hw_txt_get_rows();

@@ -12,36 +12,6 @@ uint hw_txt_stdout_row = 24, hw_txt_stdout_col = 0;
 uint hw_txt_scrolled = 0;
 uint8_t hw_txt_color = 0x07;
 
-// Writes a NUL-terminated string in a certain color to a row,col position on the text-mode screen
-// and returns the number of characters written (even if they're wrapped to the next row).
-size_t hw_txt_write_string(const char *msg, uint row, uint col, uint8_t color)
-{
-    size_t i = (row * hw_txt_cols * 2) + (col * 2);
-    size_t l;
-
-    for (l = 0; *msg != 0; ++l, i += 2)
-    {
-        hw_txt_colorbuf[i+0] = *msg++;
-        hw_txt_colorbuf[i+1] = color;
-    }
-
-    return l;
-}
-
-size_t hw_txt_write_stringn(const char *msg, size_t len, uint row, uint col, uint8_t color)
-{
-    size_t i = (row * hw_txt_cols * 2) + (col * 2);
-    size_t l;
-
-    for (l = 0; (l < len) && (*msg != 0); ++l, i += 2)
-    {
-        hw_txt_colorbuf[i+0] = *msg++;
-        hw_txt_colorbuf[i+1] = color;
-    }
-
-    return l;
-}
-
 // Clears an entire screen row.
 void hw_txt_clear_row(uint row)
 {
@@ -158,11 +128,13 @@ int printf(const char * format, ...)
 }
 
 #if __USE_FORTIFY_LEVEL > 1
-// Apparently only used when -O flag passed to gcc.
+
+// NOTE(jsd): This special function is defined only when -O<n> flag is passed to gcc.
 int __printf_chk (int __flag, __const char *__restrict __format, ...)
 {
     return printf(__format);
 }
+
 #endif
 
 // Kernel functions:
