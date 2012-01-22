@@ -169,7 +169,7 @@ void __assert_fail(const char *assertion, const char *file, unsigned int line, c
     hw_txt_set_color(0x07);
 
     // Halt the system:
-    sys_sleep();
+    sys_halt();
 }
 
 #if JITLIB_DEBUG

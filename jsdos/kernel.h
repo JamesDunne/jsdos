@@ -6,9 +6,6 @@
 #include <unistd.h>
 #include <assert.h>
 
-// Simple function pointers:
-typedef void (* action1_v_fp)(void *p1);
-
 // Pure64 constants:
 ////////////////////
 
@@ -16,6 +13,26 @@ typedef void (* action1_v_fp)(void *p1);
 #define MEM_CODE (0x100000ULL)
 // Reserve 32MiB for system code:
 #define MEM_DATA (MEM_CODE + (0x100000ULL * 31ULL))
+
+char **os_localAPIC;
+char **os_IOAPIC;
+uint16_t **os_NumCores;
+
+// Functions:
+/////////////
+
+int kprint(const char *s);
+
+// Simple function pointers:
+typedef void (* action1_v_fp)(void *p1);
+
+// Hardware interrupts:
+///////////////////////
+
+void hw_int_rtc();
+void hw_int_keyboard();
+void hw_int_network();
+void hw_ap_clear();
 
 // Debugging:
 /////////////

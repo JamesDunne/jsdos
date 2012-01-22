@@ -1,5 +1,29 @@
 #include "kernel.h"
 
+char **os_localAPIC     = (char **)(0x0000000000110000 + 0x00);
+char **os_IOAPIC        = (char **)(0x0000000000110000 + 0x08);
+uint16_t **os_NumCores      = (uint16_t **)(0x0000000000110000 + 258);
+
+void swi_rtc()
+{
+    kprint("RTC!");
+}
+
+void swi_keyboard()
+{
+    kprint("KEY!");
+}
+
+void swi_network()
+{
+    kprint("NET!");
+}
+
+void swi_ap_clear()
+{
+    kprint("AP !");
+}
+
 // Hardware screen functions:
 /////////////////////////////
 
@@ -72,11 +96,8 @@ void hw_txt_set_color(uint8_t color)
     hw_txt_color = color;
 }
 
-int printf(const char * format, ...)
+int kprint(const char *msg)
 {
-    // TODO(jsd): handle va_args
-    const char *msg = format;
-
     const char *p = msg;
 
     while (*p != 0)
@@ -98,7 +119,7 @@ int printf(const char * format, ...)
         // Check cursor row bounds:
         if (hw_txt_stdout_row >= hw_txt_rows)
         {
-            if (++hw_txt_scrolled >= (hw_txt_rows/4))
+            if (++hw_txt_scrolled >= (hw_txt_rows/2))
             {
                 delay();
                 hw_txt_scrolled = 0;
@@ -124,18 +145,9 @@ int printf(const char * format, ...)
         ++p;
     }
 
+    // TODO(jsd): return number of chars printed.
     return 0;
 }
-
-#if __USE_FORTIFY_LEVEL > 1
-
-// NOTE(jsd): This special function is defined only when -O<n> flag is passed to gcc.
-int __printf_chk (int __flag, __const char *__restrict __format, ...)
-{
-    return printf(__format);
-}
-
-#endif
 
 // Kernel functions:
 /////////////////////////////

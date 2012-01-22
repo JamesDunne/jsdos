@@ -18,9 +18,155 @@ inline void outportb(unsigned int port, unsigned char value)
    __asm__ volatile ("outb %%al,%%dx": :"d" (port), "a" (value));
 }
 
-// Called first from main to init the system.
+extern void hwi_exception_default();
+extern void hwi_interrupt_default();
+extern void hwi_exception_gate_00();
+extern void hwi_keyboard();
+extern void hwi_rtc();
+extern void hwi_network();
+extern void hwi_ap_wakeup();
+extern void hwi_ap_reset();
+
+void idt_set(uintptr_t i, uintptr_t p)
+{
+//     char tmp[17];
+//     memcpy(tmp, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 17);
+//     kprint(txt_format_hex_int64(tmp, i));
+//     kprint(" = ");
+//     kprint(txt_format_hex_int64(tmp, p));
+//     kprint("\n");
+
+    char *idt = (char *)(i << 4);
+
+    *(uint16_t *)idt = p;
+    idt += 2;
+
+    p >>= 16;
+    idt += 4;
+
+    *(uint16_t *)idt = p;
+    idt += 2;
+
+    p >>= 16;
+    *(uint32_t *)idt = p;
+}
+
+void ioapic_reg_write(uint32_t index, uint32_t data)
+{
+    *(uint32_t *)(*os_IOAPIC + 0x00) = index;
+    *(uint32_t *)(*os_IOAPIC + 0x10) = data;
+}
+
+void ioapic_entry_write(uint32_t index, uint64_t data)
+{
+    ioapic_reg_write((index << 1) + 0x10, (uint32_t) (data));
+    ioapic_reg_write((index << 1) + 0x11, (uint32_t) (data >> 32));
+}
+
+void smp_reset(uint8_t apicId)
+{
+    // Set APIC id:
+    *(uint32_t *)(*os_localAPIC + 0x310) = (uint32_t)apicId << 24;
+    // Execute interrupt 0x81:
+    *(uint32_t *)(*os_localAPIC + 0x300) = (uint32_t)0x81;
+}
+
+
+// Called from start() to initialize 64-bit hardware:
+void init_64()
+{
+    char tmp[17];
+    memcpy(tmp, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 17);
+
+    // Setup catch-all exception and interrupt handlers:
+    for (uintptr_t i = 0; i < 32; ++i)
+    {
+        idt_set(i, (uintptr_t)hwi_exception_default);
+    }
+    for (uintptr_t i = 32; i < 256; ++i)
+    {
+        idt_set(i, (uintptr_t)hwi_interrupt_default);
+    }
+
+    // Setup specific exception handlers:
+    for (uintptr_t i = 0; i < 20; ++i)
+    {
+        idt_set(i, ((uintptr_t)hwi_exception_gate_00) + (i << 4));
+    }
+
+    idt_set(0x21, (uintptr_t)hwi_keyboard);
+    idt_set(0x28, (uintptr_t)hwi_rtc);
+    idt_set(0x80, (uintptr_t)hwi_ap_wakeup);
+    idt_set(0x81, (uintptr_t)hwi_ap_reset);
+
+    kprint("Exception and interrupt handlers set up.\n");
+
+    // Grab data from Pure64:
+    *os_localAPIC = *(char **)0x5000;
+    *os_IOAPIC = *(char **)0x5008;
+    *os_NumCores = *(uint16_t **)0x5012;
+
+    kprint("local-APIC = 0x");
+    kprint(txt_format_hex_int64(tmp, (int64_t)*os_localAPIC));
+    kprint("\nIO-APIC   = 0x");
+    kprint(txt_format_hex_int64(tmp, (int64_t)*os_IOAPIC));
+    kprint("\n");
+
+    init_memory_map();
+
+    kprint("Resetting APs...\n");
+
+    // Reset all active cores except BSP:
+    for (int i = 0; i < 256; ++i)
+    {
+        // Get the CPU flags:
+        uint8_t flags = ((uint8_t *)0x5700)[i];
+
+        kprint(txt_format_hex_int8(tmp + 12, i));
+        kprint(": flags = ");
+        kprint(txt_format_hex_int8(tmp + 12, flags));
+        kprint("  ");
+
+        // Core not active?
+        if ((flags & 1) == 0)
+        {
+            kprint("not active\n");
+            continue;
+        }
+
+        // Skip BSP:
+        if ((flags & 2) == 2)
+        {
+            kprint("skip bsp\n");
+            continue;
+        }
+
+        // Reset this AP:
+        kprint("reset AP\n");
+        smp_reset(i);
+    }
+
+    kprint("APs reset\n");
+
+    // Enable cascade, keyboard interrupts:
+    inportb(0x21);
+    outportb(0x21, 0b11111001);
+
+    kprint("Interrupts enabled\n");
+
+    // Enable Keyboard:
+    //ioapic_entry_write(0x01, 0x21);
+    // Enable RTC (lowest priority):
+    //ioapic_entry_write(0x08, 0x0100000000000928ULL);
+}
+
+
+// Called first from start to init the system.
 int sys_init()
 {
+    // Initialize 64-bit hardware:
+    init_64();
+
     // Clear the text screen:
     hw_txt_clear_screen();
 
@@ -33,14 +179,8 @@ int sys_init()
     return 0;
 }
 
-void sys_done()
-{
-    // NOTE(jsd): for testing purposes
-    //assert(0);
-}
-
 // Called to halt the system indefinitely.
-void sys_sleep()
+void sys_halt()
 {
     // TODO(jsd): Want an actual CPU sleep here to save power.
     while (1) { }
@@ -49,9 +189,10 @@ void sys_sleep()
 // Called from main to run the system after `sys_init`.
 int sys_run()
 {
-    printf("123456789012345678901234567890123456789012345678901234567890123456789012345678901\n");
-    printf("hello\n\na\nb\ncdef");
-    printf("\n\n");
+    kprint("\n\n");
+//     kprint("123456789012345678901234567890123456789012345678901234567890123456789012345678901\n");
+//     kprint("hello\n\na\nb\ncdef");
+//     kprint("\n\n");
 
     // creates a new instance of the compiler
     struct jit * p = jit_init();
@@ -106,15 +247,15 @@ int sys_run()
     memcpy(intfmt, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 17);
 
     size_t pos;
-    hw_txt_set_color(0x07); printf("foo(  1): 0x");
-    hw_txt_set_color(0x0F); printf(txt_format_hex_int64(intfmt, foo(1)));
-    printf("\n");
-    hw_txt_set_color(0x07); printf("foo(100): 0x");
-    hw_txt_set_color(0x0F); printf(txt_format_hex_int64(intfmt, foo(100)));
-    printf("\n");
-    hw_txt_set_color(0x07); printf("foo(255): 0x");
-    hw_txt_set_color(0x0F); printf(txt_format_hex_int64(intfmt, foo(255)));
-    printf("\n\n");
+    hw_txt_set_color(0x07); kprint("foo(  1): 0x");
+    hw_txt_set_color(0x0F); kprint(txt_format_hex_int64(intfmt, foo(1)));
+    kprint("\n");
+    hw_txt_set_color(0x07); kprint("foo(100): 0x");
+    hw_txt_set_color(0x0F); kprint(txt_format_hex_int64(intfmt, foo(100)));
+    kprint("\n");
+    hw_txt_set_color(0x07); kprint("foo(255): 0x");
+    hw_txt_set_color(0x0F); kprint(txt_format_hex_int64(intfmt, foo(255)));
+    kprint("\n\n");
 
     // if you are interested, you can dump the machine code
     // this functionality is provided through the `gcc' and `objdump'
@@ -122,28 +263,28 @@ int sys_run()
 
     // Dump memory malloc'd:
     hw_txt_set_color(0x09);
-    printf("malloc'd: 0x");
-    printf(txt_format_hex_int64(intfmt, mem_get_alloced()));
-    printf("\n");
+    kprint("malloc'd: 0x");
+    kprint(txt_format_hex_int64(intfmt, mem_get_alloced()));
+    kprint("\n");
 
     // cleanup
     jit_free(p);
 
     hw_txt_set_color(0x09);
-    printf("malloc'd: 0x");
-    printf(txt_format_hex_int64(intfmt, mem_get_alloced()));
-    printf("\n");
+    kprint("malloc'd: 0x");
+    kprint(txt_format_hex_int64(intfmt, mem_get_alloced()));
+    kprint("\n");
 
     hw_txt_set_color(0x07);
 
     mem_walk_leaked();
 
     //memcpy(intfmt, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 17);
-    printf("leaked: 0x");
-    printf(txt_format_hex_int64(intfmt, mem_get_alloced()));
-    printf("\n");
+    kprint("leaked: 0x");
+    kprint(txt_format_hex_int64(intfmt, mem_get_alloced()));
+    kprint("\n");
 
-    printf("done");
+    kprint("done");
 
     return 0;
 }
