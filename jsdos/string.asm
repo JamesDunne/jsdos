@@ -1,9 +1,3 @@
-; =============================================================================
-; BareMetal -- a 64-bit OS written in Assembly for x86-64 systems
-; Copyright (C) 2008-2011 Return Infinity -- see LICENSE.TXT
-;
-; String Functions
-; =============================================================================
 
 align 16
 db 'DEBUG: STRING   '
@@ -77,7 +71,7 @@ os_string_to_int_next_digit:
 	add rax, rcx			; add to prior total
 	inc rsi				; advance source index
 	jmp os_string_to_int_next_digit	; and check another char
-	
+
 os_string_to_int_invalid:
 	pop rbx
 	pop rcx
@@ -100,7 +94,7 @@ os_int_to_hex_string:
 	push rax
 
 	mov rcx, 16				; number of nibbles. 64 bit = 16 nibbles = 8 bytes
-os_int_to_hex_string_next_nibble:	
+os_int_to_hex_string_next_nibble:
 	rol rax, 4				; next nibble into AL
 	mov bl, al				; copy nibble into BL
 	and rbx, 0x0F				; and convert to word
@@ -708,7 +702,7 @@ os_string_parse:
 	mov rdi, rsi
 
 	call os_string_chomp		; Remove leading and trailing spaces
-	
+
 	cmp byte [rsi], 0x00		; Check the first byte
 	je os_string_parse_done		; If it is a null then bail out
 	inc rcx				; At this point we know we have at least one word

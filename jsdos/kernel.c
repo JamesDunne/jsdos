@@ -1,27 +1,29 @@
 #include "kernel.h"
 
-char **os_localAPIC     = (char **)(0x0000000000110000 + 0x00);
-char **os_IOAPIC        = (char **)(0x0000000000110000 + 0x08);
-uint16_t **os_NumCores      = (uint16_t **)(0x0000000000110000 + 258);
+char **os_localAPIC     = (char **)     (0x0000000000110000 + 0x00);
+char **os_IOAPIC        = (char **)     (0x0000000000110000 + 0x08);
+char **os_StackBase     = (char **)     (0x0000000000110000 + 0x30);
+uint16_t *os_NumCores   = (uint16_t *)  (0x0000000000110000 + 258);
 
 void swi_rtc()
 {
-    kprint("RTC!");
+    kprint("\nRTC!");
 }
 
 void swi_keyboard()
 {
-    kprint("KEY!");
+    kprint("\nKEY!");
 }
 
 void swi_network()
 {
-    kprint("NET!");
+    kprint("\nNET!");
 }
 
 void swi_ap_clear()
 {
-    kprint("AP !");
+    kprint("\nAP!");
+    for (;;) { }
 }
 
 // Hardware screen functions:
@@ -121,7 +123,7 @@ int kprint(const char *msg)
         {
             if (++hw_txt_scrolled >= (hw_txt_rows/2))
             {
-                delay();
+                //delay();
                 hw_txt_scrolled = 0;
             }
 
@@ -205,5 +207,30 @@ char *txt_format_hex_int64(char dst[16], int64_t n)
     dst[13] = tbl_hex[x[1] & 15];
     dst[14] = tbl_hex[x[0] >> 4];
     dst[15] = tbl_hex[x[0] & 15];
+    return dst;
+}
+
+// Max output is 18446744073709551615 which is 20 chars long plus NUL terminator.
+char *txt_format_uint64(char dst[21], int base, uint64_t n)
+{
+    assert(base >= 2);
+    assert(base <= 16);
+
+    char tmp[20];
+    int t = 0, c = 0;
+
+    do
+    {
+        int digit = n % base;
+        n /= base;
+        tmp[t++] = tbl_hex[digit];
+    } while (n > 0);
+
+    for (--t; t >= 0; --t, ++c)
+    {
+        dst[c] = tmp[t];
+    }
+    dst[c] = 0;
+
     return dst;
 }

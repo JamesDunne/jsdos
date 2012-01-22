@@ -1,9 +1,3 @@
-; =============================================================================
-; BareMetal -- a 64-bit OS written in Assembly for x86-64 systems
-; Copyright (C) 2008-2011 Return Infinity -- see LICENSE.TXT
-;
-; Debug functions
-; =============================================================================
 
 align 16
 db 'DEBUG: DEBUG    '
@@ -78,7 +72,7 @@ zero_0:
 zero_1:
 	mov al, '1'
 print_zero:
-	call os_print_char	
+	call os_print_char
 
 	mov rsi, os_debug_dump_flag_string2		; Print the Sign flag
 	call os_print_string
@@ -90,7 +84,7 @@ sign_0:
 sign_1:
 	mov al, '1'
 print_sign:
-	call os_print_char	
+	call os_print_char
 
 	mov rsi, os_debug_dump_flag_string3		; Print the Direction flag
 	call os_print_string
@@ -102,7 +96,7 @@ dir_0:
 dir_1:
 	mov al, '1'
 print_dir:
-	call os_print_char	
+	call os_print_char
 
 	mov rsi, os_debug_dump_flag_string4		; Print the Overflow flag
 	call os_print_string
@@ -114,9 +108,9 @@ over_0:
 over_1:
 	mov al, '1'
 print_over:
-	call os_print_char	
+	call os_print_char
 
-	
+
 os_debug_dump_reg_done:
 	call os_print_newline
 	pop rax
@@ -178,7 +172,7 @@ os_debug_dump_mem_next_byte_ascii:
 	add rcx, 1
 	cmp rcx, 16
 	jne os_debug_dump_mem_next_byte_ascii
-	
+
 	sub rdx, 16
 	cmp rdx, 0
 	je os_debug_dump_mem_done
@@ -259,6 +253,24 @@ os_debug_dump_MAC_display:
 	pop rcx
 	pop rsi
 	ret
+; -----------------------------------------------------------------------------
+
+
+; -----------------------------------------------------------------------------
+; os_smp_get_id -- Returns the APIC ID of the CPU that ran this function
+;  IN:  Nothing
+; OUT:  RAX = CPU's APIC ID number, All other registers perserved.
+os_smp_get_id:
+    push rsi
+
+    xor eax, eax
+    mov rsi, [os_LocalAPICAddress]
+    add rsi, 0x20       ; Add the offset for the APIC ID location
+    lodsd           ; APIC ID is stored in bits 31:24
+    shr rax, 24     ; AL now holds the CPU's APIC ID (0 - 255)
+
+    pop rsi
+    ret
 ; -----------------------------------------------------------------------------
 
 

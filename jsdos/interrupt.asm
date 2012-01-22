@@ -34,9 +34,6 @@ hwi_keyboard:
     push rbx
     push rax
 
-    mov rsi, int_string00
-    call os_print_string
-
 extern swi_keyboard
     call swi_keyboard
 
@@ -139,9 +136,6 @@ hwi_ap_wakeup:
 align 16
 global hwi_ap_reset;
 hwi_ap_reset:
-    mov rsi, int_string00
-    call os_print_string
-
     cld				                ; Clear direction flag
     mov rax, hwi_ap_clear		        ; Set RAX to the address of ap_clear
     mov [rsp], rax			        ; Overwrite the return address on the CPU's stack
@@ -199,8 +193,8 @@ hwi_ap_clear:                   ; All cores start here on first startup and afte
     xor r14, r14
     xor r15, r15
 
-;extern swi_ap_clear
-;    call swi_ap_clear
+extern swi_ap_clear
+    call swi_ap_clear
 
     jmp hwi_ap_clear
 

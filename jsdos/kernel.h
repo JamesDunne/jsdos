@@ -16,7 +16,8 @@
 
 char **os_localAPIC;
 char **os_IOAPIC;
-uint16_t **os_NumCores;
+char **os_StackBase;
+uint16_t *os_NumCores;
 
 // Functions:
 /////////////
@@ -60,6 +61,8 @@ typedef struct {
     // chunk of malloc'd memory immediately follows.
 } mem_alloc_t;
 
+void *mem_next;
+
 size_t mem_get_alloced();
 void mem_walk_leaked();
 
@@ -81,5 +84,7 @@ char *txt_format_hex_int8(char dst[2], int8_t n);
 char *txt_format_hex_int16(char dst[4], int16_t n);
 char *txt_format_hex_int32(char dst[8], int32_t n);
 char *txt_format_hex_int64(char dst[16], int64_t n);
+
+char *txt_format_uint64(char dst[21], int base, uint64_t n);
 
 #include "sys.h"

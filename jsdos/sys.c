@@ -71,6 +71,14 @@ void smp_reset(uint8_t apicId)
     *(uint32_t *)(*os_localAPIC + 0x300) = (uint32_t)0x81;
 }
 
+void init_memory_map()
+{
+    // TODO(jsd): set up memory page tables
+
+    // Stack starts at the top and grows downwards in memory addresses:
+    *os_StackBase = (char *)0x200000 + 0x200000;
+    mem_next = (void *)((char *)0x200000 + 0x200000 * (*os_NumCores));
+}
 
 // Called from start() to initialize 64-bit hardware:
 void init_64()
@@ -104,7 +112,7 @@ void init_64()
     // Grab data from Pure64:
     *os_localAPIC = *(char **)0x5000;
     *os_IOAPIC = *(char **)0x5008;
-    *os_NumCores = *(uint16_t **)0x5012;
+    *os_NumCores = *(uint16_t *)0x5012;
 
     kprint("local-APIC = 0x");
     kprint(txt_format_hex_int64(tmp, (int64_t)*os_localAPIC));
@@ -117,32 +125,32 @@ void init_64()
     kprint("Resetting APs...\n");
 
     // Reset all active cores except BSP:
-    for (int i = 0; i < 256; ++i)
+    for (int i = 0; i < 8; ++i)
     {
         // Get the CPU flags:
         uint8_t flags = ((uint8_t *)0x5700)[i];
 
-        kprint(txt_format_hex_int8(tmp + 12, i));
-        kprint(": flags = ");
-        kprint(txt_format_hex_int8(tmp + 12, flags));
-        kprint("  ");
+//         kprint(txt_format_hex_int8(tmp + 14, i));
+//         kprint(": flags = ");
+//         kprint(txt_format_hex_int8(tmp + 14, flags));
+//         kprint("  ");
 
         // Core not active?
         if ((flags & 1) == 0)
         {
-            kprint("not active\n");
+//             kprint("not active\n");
             continue;
         }
 
         // Skip BSP:
         if ((flags & 2) == 2)
         {
-            kprint("skip bsp\n");
+//             kprint("skip bsp\n");
             continue;
         }
 
         // Reset this AP:
-        kprint("reset AP\n");
+//         kprint("reset AP\n");
         smp_reset(i);
     }
 
@@ -151,29 +159,33 @@ void init_64()
     // Enable cascade, keyboard interrupts:
     inportb(0x21);
     outportb(0x21, 0b11111001);
+    // Enable RTC:
+    inportb(0xA1);
+    outportb(0xA1, 0b11111110);
 
     kprint("Interrupts enabled\n");
 
-    // Enable Keyboard:
-    //ioapic_entry_write(0x01, 0x21);
-    // Enable RTC (lowest priority):
-    //ioapic_entry_write(0x08, 0x0100000000000928ULL);
+    // Reset keyboard and empty the buffer
+    outportb(0x64, 0x20);
+    uint8_t ct = (inportb(0x60) | 0b00000001) & 0b11101111;
+    outportb(0x64, 0x60);
+    outportb(0x60, ct);
 }
 
 
 // Called first from start to init the system.
 int sys_init()
 {
-    // Initialize 64-bit hardware:
-    init_64();
-
     // Clear the text screen:
     hw_txt_clear_screen();
 
+    // Initialize 64-bit hardware:
+    init_64();
+
     // Quick VGA register access to disable the hardware text cursor:
-    outportb(0x03D4, 0x0A);
-    int x = inportb(0x03D5);
-    outportb(0x03D5, x | (1 << 5));
+//     outportb(0x03D4, 0x0A);
+//     int x = inportb(0x03D5);
+//     outportb(0x03D5, x | (1 << 5));
 
     // Return 0 to indicate successful initialization.
     return 0;
