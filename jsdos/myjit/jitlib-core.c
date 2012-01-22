@@ -323,14 +323,14 @@ void jit_generate_code(struct jit * jit)
 	JIT_FREE(jit->buf);
 
 	jit->buf = mem;
-	jit->ip = mem + code_size;
+	jit->ip = jit->buf + code_size;
 
 	jit_patch_external_calls(jit);
 
 	/* assigns functions */
 	for (jit_op * op = jit_op_first(jit->ops); op != NULL; op = op->next) {
 		if (GET_OP(op) == JIT_PROLOG)
-			*(void **)(op->arg[0]) = mem + (long)op->patch_addr;
+			*(void **)(op->arg[0]) = jit->buf + (long)op->patch_addr;
 	}
 }
 

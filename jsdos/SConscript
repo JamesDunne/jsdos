@@ -1,0 +1,19 @@
+jsdos = Environment()
+platform = jsdos['PLATFORM']
+
+jsdos.VariantDir('../build/', '../jsdos/')
+
+# Setup environment for nasm
+jsdos.Replace(AS = 'nasm')
+jsdos.Replace(ASFLAGS = '-f elf64 ')
+jsdos.Replace(CCFLAGS = '-fstrength-reduce -fomit-frame-pointer -fno-builtin -nostdlib -nostartfiles -nodefaultlibs -std=c99 -pedantic -Os -funroll-loops -DJSDOS_DEBUG -I./include')
+# Use ld as the linker
+jsdos.Replace(LINK = '/usr/bin/ld')
+jsdos.Replace(LINKFLAGS = ' -T jsdos.ld ')
+
+source_c = ['start.c', 'kernel.c', 'sys.c', 'stdlib.c', 'stdio.c', 'myjit/jitlib-core.c']
+source_asm = ['support.asm']
+
+Decider('timestamp-newer')
+
+jsdos.Program('KERNEL64.SYS', source_c + source_asm)
