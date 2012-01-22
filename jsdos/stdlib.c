@@ -63,6 +63,7 @@ size_t mem_get_alloced() { return mem_alloced; }
 
 void mem_walk_leaked()
 {
+    char decfmt[21];
     char tmp[17];
     memcpy(tmp, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 17);
 
@@ -74,20 +75,20 @@ void mem_walk_leaked()
         // Block is still allocated:
         if (c->freed == 0)
         {
-            printf("0x");
-            printf(txt_format_hex_int64(tmp, (int64_t)((char *)c + sizeof(mem_alloc_t))) + 8);
-            printf(", 0x");
-            printf(txt_format_hex_int64(tmp, c->allocated) + 12);
+            kprint("0x");
+            kprint(txt_format_hex_int64(tmp, (int64_t)((char *)c + sizeof(mem_alloc_t))) + 8);
+            kprint(", 0x");
+            kprint(txt_format_hex_int64(tmp, c->allocated) + 12);
 #ifdef JSDOS_DEBUG
-            printf(" in ");
-            printf(c->loc_malloc.function);
-            printf(" (");
-            printf(c->loc_malloc.file);
-            printf(":0x");
-            printf(txt_format_hex_int64(tmp, c->loc_malloc.line) + 12);
-            printf(")");
+            kprint(" in ");
+            kprint(c->loc_malloc.function);
+            kprint(" (");
+            kprint(c->loc_malloc.file);
+            kprint(":");
+            kprint(txt_format_uint64(decfmt, 10, c->loc_malloc.line));
+            kprint(")");
 #endif
-            printf("\n");
+            kprint("\n");
         }
         else
         {
@@ -147,6 +148,7 @@ void *memset(void *s, int c, size_t n)
 // Called by assert(n) macro, expected to halt execution:
 void __assert_fail(const char *assertion, const char *file, unsigned int line, const char *function)
 {
+    char decfmt[21];
     char tmp[9];
     memcpy(tmp, "\0\0\0\0\0\0\0\0\0", 9);
 
@@ -157,13 +159,13 @@ void __assert_fail(const char *assertion, const char *file, unsigned int line, c
     if (assertion == NULL) assertion = "<no assertion>";
 
     hw_txt_set_color(0x0F);
-    printf("\nassertion failure in ");
-    printf(file);
-    printf(" (");
-    printf(txt_format_hex_int32(tmp, line));
-    printf("): ");
-    printf(function);
-    printf("\n");
+    kprint("\nassertion failure in ");
+    kprint(file);
+    kprint(":");
+    kprint(txt_format_uint64(decfmt, 10, line));
+    kprint(": ");
+    kprint(function);
+    kprint("\n");
 
     printf(assertion);
     hw_txt_set_color(0x07);

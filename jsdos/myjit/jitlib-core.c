@@ -1,5 +1,5 @@
 /*
- * MyJIT 
+ * MyJIT
  * Copyright (C) 2010 Petr Krajca, <krajcap@inf.upol.cz>
  *
  * This library is free software; you can redistribute it and/or
@@ -11,7 +11,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -184,11 +184,11 @@ static inline void __initialize_reg_counts(struct jit * jit)
 
 				// stack has to be aligned to 16 bytes
 #if defined(JIT_ARCH_SPARC)
-				while ((info->gp_reg_count) % 2) info->gp_reg_count ++; 
-				while ((info->fp_reg_count) % 2) info->fp_reg_count ++; 
+				while ((info->gp_reg_count) % 2) info->gp_reg_count ++;
+				while ((info->fp_reg_count) % 2) info->fp_reg_count ++;
 #endif
 #if defined(JIT_ARCH_AMD64)
-				while ((info->gp_reg_count + info->fp_reg_count) % 2) info->gp_reg_count ++; 
+				while ((info->gp_reg_count + info->fp_reg_count) % 2) info->gp_reg_count ++;
 #endif
 				info->args = JIT_MALLOC(sizeof(struct jit_inp_arg) * declared_args);
 			}
@@ -202,14 +202,14 @@ static inline void __initialize_reg_counts(struct jit * jit)
 			}
 			if (!op) break;
 		}
-	
+
 		for (int i = 0; i < 3; i++)
 			if ((ARG_TYPE(op, i + 1) == TREG) || (ARG_TYPE(op, i + 1) == REG)) {
 				jit_reg r = JIT_REG(op->arg[i]);
 				if ((r.type == JIT_RTYPE_INT) && (r.id > last_gp)) last_gp = r.id;
 				if ((r.type == JIT_RTYPE_FLOAT) && (r.id > last_fp)) last_fp = r.id;
 			}
-				
+
 		if (GET_OP(op) == JIT_DECL_ARG) {
 			declared_args++;
 			if (op->arg[0] == JIT_FLOAT_NUM) fp_args++;
@@ -314,25 +314,23 @@ void jit_generate_code(struct jit * jit)
 	}
 
 	/* moves the code to its final destination */
-	int code_size = jit->ip - jit->buf;  
-#if 1
+	int code_size = jit->ip - jit->buf;
+    // TODO(jsd): this assumes a constantly growing buffer that is page-aligned per the lifetime
+    // of the jit (until jit_free is called). We should not directly use malloc here nor expect it
+    // to be neatly freed.
     void * mem = malloc(code_size);
 	memcpy(mem, jit->buf, code_size);
 	JIT_FREE(jit->buf);
-#else
-    void * mem = jit->buf;
-#endif
 
-	long pos = jit->ip - jit->buf;
 	jit->buf = mem;
-	jit->ip = jit->buf + pos;
+	jit->ip = mem + code_size;
 
 	jit_patch_external_calls(jit);
 
 	/* assigns functions */
 	for (jit_op * op = jit_op_first(jit->ops); op != NULL; op = op->next) {
 		if (GET_OP(op) == JIT_PROLOG)
-			*(void **)(op->arg[0]) = jit->buf + (long)op->patch_addr;
+			*(void **)(op->arg[0]) = mem + (long)op->patch_addr;
 	}
 }
 
@@ -377,6 +375,6 @@ void jit_free(struct jit * jit)
 	jit_reg_allocator_free(jit->reg_al);
 	__free_ops(jit_op_first(jit->ops));
 	__free_labels(jit->labels);
-	JIT_FREE(jit->buf);
+    JIT_FREE(jit->buf);
 	JIT_FREE(jit);
 }
