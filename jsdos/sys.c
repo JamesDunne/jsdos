@@ -130,27 +130,27 @@ void init_64()
         // Get the CPU flags:
         uint8_t flags = ((uint8_t *)0x5700)[i];
 
-//         kprint(txt_format_hex_int8(tmp + 14, i));
-//         kprint(": flags = ");
-//         kprint(txt_format_hex_int8(tmp + 14, flags));
-//         kprint("  ");
+        kprint(txt_format_hex_int8(tmp + 14, i));
+        kprint(": flags = ");
+        kprint(txt_format_hex_int8(tmp + 14, flags));
+        kprint("  ");
 
         // Core not active?
         if ((flags & 1) == 0)
         {
-//             kprint("not active\n");
+            kprint("not active\n");
             continue;
         }
 
         // Skip BSP:
         if ((flags & 2) == 2)
         {
-//             kprint("skip bsp\n");
+            kprint("skip bsp\n");
             continue;
         }
 
         // Reset this AP:
-//         kprint("reset AP\n");
+        kprint("reset AP\n");
         smp_reset(i);
     }
 
@@ -172,7 +172,6 @@ void init_64()
     outportb(0x60, ct);
 }
 
-
 // Called first from start to init the system.
 int sys_init()
 {
@@ -183,9 +182,9 @@ int sys_init()
     init_64();
 
     // Quick VGA register access to disable the hardware text cursor:
-//     outportb(0x03D4, 0x0A);
-//     int x = inportb(0x03D5);
-//     outportb(0x03D5, x | (1 << 5));
+    outportb(0x03D4, 0x0A);
+    int x = inportb(0x03D5);
+    outportb(0x03D5, x | (1 << 5));
 
     // Return 0 to indicate successful initialization.
     return 0;
@@ -224,7 +223,6 @@ int sys_run()
     // register R(1)
     jit_addi(p, R( 1), R( 0), 1);
     jit_addi(p, R( 2), R( 1), 1);
-#if 0
     // NOTE(jsd): testing the "unlimited" virtual register system here:
     jit_addi(p, R( 3), R( 2), 1);
     jit_addi(p, R( 4), R( 3), 1);
@@ -247,10 +245,6 @@ int sys_run()
 
     // returns from the function and returns the value stored in the register R(19)
     jit_retr(p, R(19));
-#else
-    // returns from the function and returns the value stored in the register R(19)
-    jit_retr(p, R(2));
-#endif
 
     // compiles the above defined code
     jit_generate_code(p);
