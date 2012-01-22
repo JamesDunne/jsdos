@@ -1,0 +1,27 @@
+OS:
+
+assume 64-bit
+
+kernel:
+    just a bitcode translator to host machine code
+    no memory protection
+    no threads
+    execution stack may only hold function continuation references and function local variables
+    each CPU runs a main fiber scheduler
+    all system and app work done via fibers
+
+memory:
+    physical addressing mode only
+    garbage collection
+
+dev language:
+    no pointer assignments to constants
+    no pointer arithmetic
+    must emit reference maps per type for GC usage
+        a simple bitmask describing which machine word offsets hold references
+    function calling convention is continuation-passing-style
+        multiple continuations passed for success/error handling
+
+communication:
+    only queues; several diff kinds of queues
+    communication with drivers also done via queues
