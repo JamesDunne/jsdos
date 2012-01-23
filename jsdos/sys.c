@@ -121,7 +121,7 @@ void init_64()
 
     kprint("Resetting APs...\n");
 
-#if 0
+#if 1
     // Reset all active cores except BSP:
     for (int i = 0; i < 8; ++i)
     {
